@@ -4,8 +4,7 @@ An autonomous outbound pipeline engine built on Claude Code.
 Give it an ICP. It finds companies, enriches contacts, scores 
 leads, and drafts personalised outreach — all from one command.
 
-Built by [Aakash Sethi](https://linkedin.com/in/aakash-sethi) 
-— GTM operator and growth engineer.
+Built by [Aakash Sethi](https://linkedin.com/in/aakash-sethi) — GTM operator and growth engineer.
 
 ---
 
@@ -20,7 +19,6 @@ This OS makes outbound a system — not a task.
 ---
 
 ## How it works
-
 Every session reads your config files before doing anything.
 Every output gets stored. Every decision gets logged.
 The system compounds. You stop repeating yourself.
@@ -28,11 +26,32 @@ The system compounds. You stop repeating yourself.
 ---
 
 ## Architecture
+
+    gtm-agent-os/
+    │
+    ├── CLAUDE.md        Brain. Loads every session. Rules + ritual.
+    ├── BRAND.md         ICP, product, pain points. Swap per client.
+    ├── SOUL.md          Writing voice. Every email sounds like you.
+    ├── MEMORY.md        Append-only campaign log. Never starts blank.
+    ├── settings.json    Permissions, webhooks, safety rules.
+    │
+    ├── .claude/
+    │   ├── skills/      9 skills across GTM, Clay, outreach, n8n
+    │   ├── hooks/       4 safety hooks — nothing fires without review
+    │   └── agents/      Sub-agent definitions (expanding)
+    │
+    └── memory/vault/
+        ├── raw/         Enriched lead data lands here
+        ├── wiki/        Agent organises raw into structured notes
+        ├── output/      Email drafts, campaign summaries
+        └── todos/       Active TODOs read at every session start
+
 ---
 
 ## Skill loadout (9 skills, deliberately lean)
 
 ### GTM core
+
 | Skill | What it does |
 |-------|-------------|
 | `positioning-icp` | Interviews client → produces Clay-ready ICP |
@@ -42,6 +61,7 @@ The system compounds. You stop repeating yourself.
 | `n8n-clay-integration` | Bridges n8n orchestration with Clay enrichment |
 
 ### Clay integration
+
 | Skill | What it does |
 |-------|-------------|
 | `clay-outbound-prep` | Enrich + email + score + first line in one shot |
@@ -49,6 +69,7 @@ The system compounds. You stop repeating yourself.
 | `clay-reply-classify` | Sorts replies into 4 buckets, recommends next action |
 
 ### Outreach
+
 | Skill | What it does |
 |-------|-------------|
 | `ai-cold-outreach` | 4-email sequences, Tier A/B/C, SOUL.md voice |
@@ -61,10 +82,10 @@ The system compounds. You stop repeating yourself.
 
 - `block-dangerous-commands` — stops destructive bash commands
 - `protect-secrets` — Claude cannot read .env or API keys
-- `auto-stage` — every file edit staged to git automatically  
+- `auto-stage` — every file edit staged to git automatically
 - `notify-permission` — logs every blocked action with timestamp
 
-`send_email` and `post_social` are permanently denied in 
+`send_email` and `post_social` are permanently denied in
 `settings.json`. The agent drafts. You approve. Nothing fires.
 
 ---
@@ -77,12 +98,12 @@ The system compounds. You stop repeating yourself.
 - CRM API key — HubSpot or Salesforce (optional)
 
 **What you do:**
+
 1. Update `BRAND.md` with their product and ICP
 2. Add their credentials to `.env`
 3. Add webhook URLs to `settings.json`
 4. Run `claude` in terminal
-5. Type: `Run positioning-icp skill and build the first 
-   50-company target list`
+5. Type: `Run positioning-icp skill and build the first 50-company target list`
 
 Pipeline goes from zero to enriched leads in one session.
 
@@ -91,7 +112,7 @@ Pipeline goes from zero to enriched leads in one session.
 ## What's already working (no credentials needed)
 
 - ICP analysis and refinement
-- Lead scoring against any ICP criteria  
+- Lead scoring against any ICP criteria
 - Personalised email drafting in defined voice
 - Reply classification and routing logic
 - Weekly GTM metrics reporting
@@ -121,9 +142,9 @@ This one bridges Claude Code with n8n — giving you:
 - Scheduled runs (pipeline builds while you sleep)
 - Retry logic and error handling
 - High-volume operations without session token limits
-- Bidirectional Clay ↔ n8n data sync
+- Bidirectional Clay and n8n data sync
 
-The `n8n-clay-integration` skill documents the exact 
+The `n8n-clay-integration` skill documents the exact
 webhook patterns and workflow architecture for this bridge.
 
 ---
@@ -139,19 +160,13 @@ webhook patterns and workflow architecture for this bridge.
 
 ---
 
-## About the builder
+## About Me
 
-Aakash Sethi — GTM operator with experience scaling 
-outbound pipelines from $35M to $50M+ monthly opportunities.
-
-Previously: Growth Marketing at MPOWER Financing, 
-Strategy Consulting at Ivy Entrepreneurs.
-
-Background in n8n workflow automation, Clay enrichment 
-pipelines, Salesforce/HubSpot operations, and SQL/Python 
+Background in n8n workflow automation, Clay enrichment
+pipelines, Salesforce/HubSpot operations, and SQL/Python
 data analysis.
 
-This OS is the system I wish I had when building pipelines 
+This OS is the system I wish I had when building pipelines
 manually. Now it's infrastructure anyone can run.
 
 [LinkedIn](https://linkedin.com/in/aakash-sethi) · 
