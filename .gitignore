@@ -1,0 +1,27 @@
+# Never upload credentials
+.env
+.env.local
+.env.production
+
+# Never upload API keys or secrets
+secrets/
+*.key
+*.pem
+
+# VS Code internal files
+.vscode/
+
+# Node modules (too large, reinstall with npm install)
+node_modules/
+
+# Windows system files
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Clay exports (may contain PII)
+memory/vault/raw/*.csv
+memory/vault/raw/*.xlsx

@@ -1,0 +1,58 @@
+{
+  "model": "claude-sonnet-4-5",
+  "permissions": {
+    "allow": [
+      "read",
+      "write", 
+      "web_search",
+      "file_create",
+      "file_edit",
+      "bash"
+    ],
+    "deny": [
+      "send_email",
+      "post_social",
+      "delete_file",
+      "git_push"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "command",
+          "command": "node .claude/hooks/block-dangerous-commands.js"
+        }]
+      },
+      {
+        "matcher": "Read|Edit|Write|Bash",
+        "hooks": [{
+          "type": "command", 
+          "command": "node .claude/hooks/protect-secrets.js"
+        }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{
+          "type": "command",
+          "command": "node .claude/hooks/auto-stage.js"
+        }]
+      }
+    ]
+  },
+  "mcp": [],
+  "clay": {
+    "webhook_url": "PASTE_YOUR_CLAY_WEBHOOK_URL_HERE",
+    "confidence_threshold": 80,
+    "max_credits_per_run": 50
+  },
+  "integrations": {
+    "hubspot": "NOT_CONFIGURED",
+    "salesforce": "NOT_CONFIGURED",
+    "instantly": "NOT_CONFIGURED",
+    "smartlead": "NOT_CONFIGURED"
+  }
+}
