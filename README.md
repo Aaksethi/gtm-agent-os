@@ -20,12 +20,6 @@ This OS makes outbound a system — not a task.
 ---
 
 ## How it works
-You define the ICP once → OS finds companies via Clay
-→ enriches contacts → scores against ICP
-→ drafts personalised emails in your voice
-→ classifies replies automatically
-→ logs everything to memory vault
-→ next session starts smarter than the last
 
 Every session reads your config files before doing anything.
 Every output gets stored. Every decision gets logged.
@@ -34,25 +28,6 @@ The system compounds. You stop repeating yourself.
 ---
 
 ## Architecture
-gtm-agent-os/
-│
-├── CLAUDE.md        Brain. Loads every session. Rules + ritual.
-├── BRAND.md         ICP, product, pain points. Swap per client.
-├── SOUL.md          Writing voice. Every email sounds like you.
-├── MEMORY.md        Append-only campaign log. Never starts blank.
-├── settings.json    Permissions, webhooks, safety rules.
-│
-├── .claude/
-│   ├── skills/      9 skills across GTM, Clay, outreach, n8n
-│   ├── hooks/       4 safety hooks — nothing fires without review
-│   └── agents/      Sub-agent definitions (expanding)
-│
-└── memory/vault/
-├── raw/         Enriched lead data lands here
-├── wiki/        Agent organises raw into structured notes
-├── output/      Email drafts, campaign summaries
-└── todos/       Active TODOs read at every session start
-
 ---
 
 ## Skill loadout (9 skills, deliberately lean)
