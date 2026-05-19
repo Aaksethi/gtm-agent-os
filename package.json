@@ -1,0 +1,24 @@
+{
+  "name": "gtm-agent-os",
+  "version": "1.0.0",
+  "description": "An autonomous outbound pipeline engine built on Claude Code.\r Give it an ICP. It finds companies, enriches contacts, scores \r leads, and drafts personalised outreach — all from one command.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aaksethi/gtm-agent-os.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Aaksethi/gtm-agent-os/issues"
+  },
+  "homepage": "https://github.com/Aaksethi/gtm-agent-os#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

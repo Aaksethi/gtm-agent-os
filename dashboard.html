@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTM Agent OS — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --bg-card: #141414;
+    --bg-hover: #1a1a1a;
+    --amber: #f59e0b;
+    --amber-dim: #92400e;
+    --amber-glow: rgba(245, 158, 11, 0.15);
+    --green: #10b981;
+    --green-dim: rgba(16, 185, 129, 0.15);
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.1);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59, 130, 246, 0.1);
+    --text-primary: #e5e5e5;
+    --text-secondary: #737373;
+    --text-tertiary: #404040;
+    --border: #1f1f1f;
+    --border-amber: rgba(245, 158, 11, 0.3);
+    --mono: 'Calibri', sans-serif;
+    --sans: 'Calibri', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+  .topbar {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 0 32px; height: 56px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    font-family: var(--mono); font-size: 13px;
+    font-weight: 600; color: var(--amber);
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .logo-sep { width: 1px; height: 20px; background: var(--border); }
+  .logo-sub { font-family: var(--mono); font-size: 11px; color: var(--text-secondary); letter-spacing: 0.1em; }
+  .topbar-right { display: flex; align-items: center; gap: 24px; }
+  .status-indicator { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--text-secondary); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .topbar-time { font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); }
+  .main {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    min-height: calc(100vh - 56px);
+  }
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    background: var(--bg-secondary);
+  }
+  .sidebar-section { margin-bottom: 32px; }
+  .sidebar-label {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.2em; color: var(--text-tertiary);
+    text-transform: uppercase; padding: 0 20px; margin-bottom: 8px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 20px; cursor: pointer;
+    transition: all 0.15s; font-size: 13px;
+    color: var(--text-secondary);
+    border-left: 2px solid transparent;
+    font-family: var(--mono);
+  }
+  .sidebar-item:hover { background: var(--bg-hover); color: var(--text-primary); border-left-color: var(--amber); }
+  .sidebar-item.active { background: var(--amber-glow); color: var(--amber); border-left-color: var(--amber); }
+  .sidebar-item-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .content { padding: 28px 32px; overflow-y: auto; }
+  .page-header { margin-bottom: 28px; animation: fadeUp 0.4s ease both; }
+  .page-title { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-subtitle { font-size: 13px; color: var(--text-secondary); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; animation: fadeUp 0.4s ease 0.1s both; }
+  .metric-card { background: var(--bg-card); border: 1px solid var(--border); padding: 18px 20px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+  .metric-card:hover { border-color: var(--border-amber); }
+  .metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .metric-card.amber::before { background: var(--amber); }
+  .metric-card.green::before { background: var(--green); }
+  .metric-card.blue::before { background: var(--blue); }
+  .metric-card.red::before { background: var(--red); }
+  .metric-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px; }
+  .metric-value { font-family: var(--mono); font-size: 28px; font-weight: 600; color: var(--text-primary); line-height: 1; margin-bottom: 6px; }
+  .metric-delta { font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; animation: fadeUp 0.4s ease 0.2s both; }
+  .panel { background: var(--bg-card); border: 1px solid var(--border); }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .panel-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; color: var(--text-secondary); text-transform: uppercase; }
+  .panel-badge { font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 2px; }
+  .panel-badge.amber { background: var(--amber-glow); color: var(--amber); border: 1px solid var(--border-amber); }
+  .panel-badge.green { background: var(--green-dim); color: var(--green); }
+  .panel-content { padding: 16px 18px; }
+  .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .skill-btn {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    padding: 14px 16px; cursor: pointer; transition: all 0.2s;
+    text-align: left; position: relative; overflow: hidden;
+  }
+  .skill-btn::after { content: ''; position: absolute; inset: 0; background: var(--amber-glow); opacity: 0; transition: opacity 0.2s; }
+  .skill-btn:hover { border-color: var(--border-amber); }
+  .skill-btn:hover::after { opacity: 1; }
+  .skill-btn:active { transform: scale(0.98); }
+  .skill-btn-tag { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; color: var(--amber); text-transform: uppercase; margin-bottom: 6px; position: relative; z-index: 1; }
+  .skill-btn-name { font-family: var(--mono); font-size: 12px; color: var(--text-primary); font-weight: 500; margin-bottom: 4px; position: relative; z-index: 1; }
+  .skill-btn-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.4; position: relative; z-index: 1; }
+  .pipeline-table { width: 100%; border-collapse: collapse; }
+  .pipeline-table th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--text-tertiary); text-transform: uppercase; text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 400; }
+  .pipeline-table td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid var(--border); font-family: var(--mono); }
+  .pipeline-table tr:last-child td { border-bottom: none; }
+  .pipeline-table tr:hover td { background: var(--bg-hover); }
+  .activity-feed { display: flex; flex-direction: column; gap: 0; }
+  .activity-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); animation: fadeUp 0.3s ease both; }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-time { font-family: var(--mono); font-size: 10px; color: var(--text-tertiary); flex-shrink: 0; padding-top: 2px; width: 44px; }
+  .activity-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .activity-content { flex: 1; }
+  .activity-text { font-size: 12px; color: var(--text-primary); line-height: 1.4; margin-bottom: 2px; }
+  .activity-meta { font-family: var(--mono); font-size: 10px; color: var(--text-tertiary); }
+  .right-panel { border-left: 1px solid var(--border); background: var(--bg-secondary); padding: 24px 20px; overflow-y: auto; }
+  .right-section { margin-bottom: 28px; }
+  .right-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 12px; }
+  .icp-card { background: var(--bg-card); border: 1px solid var(--border); padding: 14px; margin-bottom: 8px; }
+  .icp-key { font-family: var(--mono); font-size: 10px; color: var(--text-tertiary); margin-bottom: 3px; letter-spacing: 0.1em; }
+  .icp-value { font-family: var(--mono); font-size: 12px; color: var(--amber); }
+  .integration-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .integration-item:last-child { border-bottom: none; }
+  .integration-name { font-family: var(--mono); font-size: 12px; color: var(--text-primary); }
+  .integration-status { font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 2px; }
+  .int-connected { background: var(--green-dim); color: var(--green); }
+  .int-ready { background: var(--amber-glow); color: var(--amber); }
+  .int-pending { background: var(--bg-hover); color: var(--text-tertiary); border: 1px solid var(--border); }
+  .command-bar {
+    position: fixed; bottom: 0;
+    left: 260px; right: 300px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex; align-items: center; gap: 12px; z-index: 50;
+  }
+  .command-prefix { font-family: var(--mono); font-size: 13px; color: var(--amber); flex-shrink: 0; }
+  .command-input { flex: 1; background: none; border: none; outline: none; font-family: var(--mono); font-size: 13px; color: var(--text-primary); caret-color: var(--amber); }
+  .command-input::placeholder { color: var(--text-tertiary); }
+  .command-hint { font-family: var(--mono); font-size: 10px; color: var(--text-tertiary); flex-shrink: 0; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--bg-card); border: 1px solid var(--border-amber); padding: 28px; width: 560px; max-height: 80vh; overflow-y: auto; animation: modalIn 0.2s ease; }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-title { font-family: var(--mono); font-size: 14px; color: var(--amber); font-weight: 600; }
+  .modal-close { font-size: 18px; cursor: pointer; background: none; border: none; color: var(--text-secondary); transition: color 0.15s; }
+  .modal-close:hover { color: var(--text-primary); }
+  .modal-body { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 6px; }
+  .modal-input { width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); padding: 10px 12px; font-family: var(--mono); font-size: 12px; color: var(--text-primary); outline: none; transition: border-color 0.2s; }
+  .modal-input:focus { border-color: var(--amber); }
+  .modal-btn { width: 100%; padding: 12px; background: var(--amber); color: #000; border: none; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+  .modal-btn:hover { background: #fbbf24; }
+  .running-indicator { display: none; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--amber); padding: 8px 14px; background: var(--amber-glow); border: 1px solid var(--border-amber); margin-bottom: 16px; }
+  .running-indicator.active { display: flex; }
+  .spinner { width: 10px; height: 10px; border: 1px solid var(--amber-dim); border-top-color: var(--amber); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 80px; right: 320px; background: var(--bg-card); border: 1px solid var(--border-amber); padding: 12px 18px; font-family: var(--mono); font-size: 12px; color: var(--amber); z-index: 300; display: none; animation: toastIn 0.3s ease; }
+  .toast.active { display: block; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .progress-bar { height: 2px; background: var(--border); margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--amber); transition: width 0.3s ease; }
+  .memory-log { font-family: var(--mono); font-size: 11px; color: var(--text-secondary); line-height: 1.8; background: var(--bg-primary); padding: 14px; border: 1px solid var(--border); max-height: 160px; overflow-y: auto; }
+  .memory-log .log-date { color: var(--amber); }
+  .memory-log .log-event { color: var(--green); }
+  .pb-command { padding-bottom: 64px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">GTM Agent OS</div>
+    <div class="logo-sep"></div>
+    <div class="logo-sub">Command Center v1.0</div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-indicator">
+      <div class="status-dot" id="server-dot"></div>
+      <span id="server-status">Checking server...</span>
+    </div>
+    <div class="topbar-time" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <div class="sidebar-item active" onclick="setView('pipeline')">
+        <div class="sidebar-item-dot" style="background:var(--amber)"></div>Pipeline
+      </div>
+      <div class="sidebar-item" onclick="setView('skills')">
+        <div class="sidebar-item-dot" style="background:var(--blue)"></div>Run Skills
+      </div>
+      <div class="sidebar-item" onclick="setView('memory')">
+        <div class="sidebar-item-dot" style="background:var(--green)"></div>Memory Vault
+      </div>
+      <div class="sidebar-item" onclick="setView('config')">
+        <div class="sidebar-item-dot" style="background:var(--text-tertiary)"></div>Configuration
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Current Campaign</div>
+      <div class="sidebar-item" style="flex-direction:column;align-items:flex-start;gap:4px;cursor:default;">
+        <span style="font-size:11px;color:var(--amber);font-family:var(--mono)">Retail Chain CMOs</span>
+        <span style="font-size:10px;color:var(--text-tertiary);font-family:var(--mono)">50+ locations · $500M+</span>
+        <div class="progress-bar" style="width:100%;margin-top:6px;">
+          <div class="progress-fill" style="width:0%" id="campaign-progress"></div>
+        </div>
+        <span style="font-size:10px;color:var(--text-tertiary);font-family:var(--mono)" id="campaign-count">0 / 50 leads</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Safety</div>
+      <div class="sidebar-item" style="cursor:default;color:var(--green);font-size:11px;">
+        <div class="sidebar-item-dot" style="background:var(--green)"></div>send_email: DENIED
+      </div>
+      <div class="sidebar-item" style="cursor:default;color:var(--green);font-size:11px;">
+        <div class="sidebar-item-dot" style="background:var(--green)"></div>post_social: DENIED
+      </div>
+      <div class="sidebar-item" style="cursor:default;color:var(--green);font-size:11px;">
+        <div class="sidebar-item-dot" style="background:var(--green)"></div>4 hooks active
+      </div>
+    </div>
+  </div>
+
+  <div class="content pb-command" id="main-content">
+    <div class="running-indicator" id="running-indicator">
+      <div class="spinner"></div>
+      <span id="running-text">Agent running...</span>
+    </div>
+
+    <!-- PIPELINE VIEW -->
+    <div id="view-pipeline">
+      <div class="page-header">
+        <div class="page-title">Pipeline Overview</div>
+        <div class="page-subtitle">Retail chain CMO campaign · Session 1</div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric-card amber">
+          <div class="metric-label">Companies Found</div>
+          <div class="metric-value" id="metric-companies">0</div>
+          <div class="metric-delta">Awaiting Clay search</div>
+        </div>
+        <div class="metric-card green">
+          <div class="metric-label">Emails Ready</div>
+          <div class="metric-value" id="metric-emails">0</div>
+          <div class="metric-delta">Drafts pending</div>
+        </div>
+        <div class="metric-card blue">
+          <div class="metric-label">Reply Rate</div>
+          <div class="metric-value" id="metric-replies">—</div>
+          <div class="metric-delta">No emails sent yet</div>
+        </div>
+        <div class="metric-card red">
+          <div class="metric-label">Hot Leads</div>
+          <div class="metric-value" id="metric-hot">0</div>
+          <div class="metric-delta">Interested replies</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Lead Pipeline</div>
+            <div class="panel-badge amber">Live</div>
+          </div>
+          <div class="panel-content">
+            <table class="pipeline-table">
+              <thead>
+                <tr>
+                  <th>Company</th><th>Contact</th><th>Tier</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="pipeline-tbody">
+                <tr>
+                  <td colspan="4" style="color:var(--text-tertiary);text-align:center;padding:24px;font-size:11px;">
+                    No leads yet — run clay-outbound-prep to populate
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Activity Log</div>
+            <div class="panel-badge green">Live</div>
+          </div>
+          <div class="panel-content">
+            <div class="activity-feed" id="activity-feed">
+              <div class="activity-item">
+                <div class="activity-time">Now</div>
+                <div class="activity-dot" style="background:var(--green)"></div>
+                <div class="activity-content">
+                  <div class="activity-text">OS initialized. CLAUDE.md loaded.</div>
+                  <div class="activity-meta">All hooks active · Session ready</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKILLS VIEW -->
+    <div id="view-skills" style="display:none;">
+      <div class="page-header">
+        <div class="page-title">Run Skills</div>
+        <div class="page-subtitle">Click any skill to configure and execute against Claude Code</div>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div class="panel-title" style="margin-bottom:12px;color:var(--text-tertiary);font-family:var(--mono);font-size:10px;letter-spacing:0.15em;">GTM CORE</div>
+        <div class="skills-grid">
+          <div class="skill-btn" onclick="openSkillModal('positioning-icp')">
+            <div class="skill-btn-tag">GTM · Strategy</div>
+            <div class="skill-btn-name">positioning-icp</div>
+            <div class="skill-btn-desc">Interview client → produce Clay-ready ICP. Run this first on every engagement.</div>
+          </div>
+          <div class="skill-btn" onclick="openSkillModal('lead-enrichment')">
+            <div class="skill-btn-tag">GTM · Outbound</div>
+            <div class="skill-btn-name">lead-enrichment</div>
+            <div class="skill-btn-desc">Design waterfall enrichment. Protects Clay credits by scoring first.</div>
+          </div>
+          <div class="skill-btn" onclick="openSkillModal('gtm-metrics')">
+            <div class="skill-btn-tag">GTM · Operations</div>
+            <div class="skill-btn-name">gtm-metrics</div>
+            <div class="skill-btn-desc">Weekly pipeline report. Surfaces what to fix before it hits revenue.</div>
+          </div>
+          <div class="skill-btn" onclick="openSkillModal('social-selling')">
+            <div class="skill-btn-tag">GTM · Inbound</div>
+            <div class="skill-btn-name">social-selling</div>
+            <div class="skill-btn-desc">LinkedIn signals → outreach moments. Warmer than cold lists.</div>
+          </div>
+          <div class="skill-btn" onclick="openSkillModal('n8n-clay-integration')">
+            <div class="skill-btn-tag">GTM · Automation</div>
+            <div class="skill-btn-name">n8n-clay-integration</div>
+            <div class="skill-btn-desc">Bridge n8n orchestration with Clay enrichment. Your competitive edge.</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div class="panel-title" style="margin-bottom:12px;color:var(--text-tertiary);font-family:var(--mono);font-size:10px;letter-spacing:0.15em;">CLAY INTEGRATION</div>
+        <div class="skills-grid">
+          <div class="skill-btn" onclick="openSkillModal('clay-outbound-prep')">
+            <div class="skill-btn-tag">Clay · Core</div>
+            <div class="skill-btn-name">clay-outbound-prep</div>
+            <div class="skill-btn-desc">Enrich + email + score + first line in one shot. The main skill.</div>
+          </div>
+          <div class="skill-btn" onclick="openSkillModal('clay-icp-score')">
+            <div class="skill-btn-tag">Clay · Scoring</div>
+            <div class="skill-btn-name">clay-icp-score</div>
+            <div class="skill-btn-desc">A/B/C/D tier scoring. Only enriches leads that actually qualify.</div>
+          </div>
+          <div class="skill-btn" onclick="openSkillModal('clay-reply-classify')">
+            <div class="skill-btn-tag">Clay · Replies</div>
+            <div class="skill-btn-name">clay-reply-classify</div>
+            <div class="skill-btn-desc">Sorts replies into 4 buckets. Drafts the right response for each.</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:80px;">
+        <div class="panel-title" style="margin-bottom:12px;color:var(--text-tertiary);font-family:var(--mono);font-size:10px;letter-spacing:0.15em;">OUTREACH</div>
+        <div class="skills-grid">
+          <div class="skill-btn" onclick="openSkillModal('ai-cold-outreach')">
+            <div class="skill-btn-tag">Outreach · Email</div>
+            <div class="skill-btn-name">ai-cold-outreach</div>
+            <div class="skill-btn-desc">4-email sequences in your SOUL.md voice. Tier A/B/C priority order.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMORY VIEW -->
+    <div id="view-memory" style="display:none;">
+      <div class="page-header">
+        <div class="page-title">Memory Vault</div>
+        <div class="page-subtitle">Persistent knowledge across all sessions</div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">MEMORY.md — Campaign Log</div>
+            <div class="panel-badge amber">Append only</div>
+          </div>
+          <div class="panel-content">
+            <div class="memory-log" id="memory-content">Loading...</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Vault Files</div>
+            <div class="panel-badge green">Live</div>
+          </div>
+          <div class="panel-content">
+            <div id="vault-files" style="font-family:var(--mono);font-size:11px;color:var(--text-secondary);line-height:2;">
+              Loading vault...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG VIEW -->
+    <div id="view-config" style="display:none;">
+      <div class="page-header">
+        <div class="page-title">Configuration</div>
+        <div class="page-subtitle">Integrations · ICP · Safety settings</div>
+      </div>
+      <div class="grid-2" style="margin-bottom:80px;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Integrations</div></div>
+          <div class="panel-content">
+            <div class="integration-item"><div class="integration-name">Clay</div><div class="integration-status int-ready">Webhook ready</div></div>
+            <div class="integration-item"><div class="integration-name">Instantly</div><div class="integration-status int-ready">Selected</div></div>
+            <div class="integration-item"><div class="integration-name">HubSpot</div><div class="integration-status int-pending">Not configured</div></div>
+            <div class="integration-item"><div class="integration-name">Salesforce</div><div class="integration-status int-pending">Not configured</div></div>
+            <div class="integration-item"><div class="integration-name">n8n</div><div class="integration-status int-ready">Architecture ready</div></div>
+            <div class="integration-item"><div class="integration-name">Apollo</div><div class="integration-status int-pending">Not configured</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Current ICP</div>
+            <div class="panel-badge amber">BRAND.md</div>
+          </div>
+          <div class="panel-content">
+            <div class="icp-card"><div class="icp-key">Industry</div><div class="icp-value">Retail chains · Physical locations</div></div>
+            <div class="icp-card"><div class="icp-key">Size</div><div class="icp-value">50+ locations · $500M+ revenue</div></div>
+            <div class="icp-card"><div class="icp-key">Primary buyer</div><div class="icp-value">CMO · VP Marketing · Head of Marketing</div></div>
+            <div class="icp-card"><div class="icp-key">Geography</div><div class="icp-value">United States</div></div>
+            <div class="icp-card"><div class="icp-key">Key trigger</div><div class="icp-value">Opened 3+ locations in last 90 days</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="right-section">
+      <div class="right-label">Agent Status</div>
+      <div id="agent-status" style="font-family:var(--mono);font-size:12px;color:var(--green);margin-bottom:4px;">● Checking...</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-tertiary);">claude-sonnet-4-5</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-tertiary);margin-top:2px;">4 hooks active · 9 skills loaded</div>
+    </div>
+    <div class="right-section">
+      <div class="right-label">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="skill-btn" onclick="quickRun('Read CLAUDE.md, BRAND.md and MEMORY.md. Summarize the current campaign status and top 3 priorities.')" style="width:100%;">
+          <div class="skill-btn-tag">Quick run</div>
+          <div class="skill-btn-name">Session briefing</div>
+        </button>
+        <button class="skill-btn" onclick="quickRun('Read BRAND.md and design the Clay search criteria for the current ICP. Output the exact filters to use.')" style="width:100%;">
+          <div class="skill-btn-tag">Quick run</div>
+          <div class="skill-btn-name">Build Clay criteria</div>
+        </button>
+        <button class="skill-btn" onclick="quickRun('Read MEMORY.md and generate a weekly GTM metrics report based on all logged campaign activity.')" style="width:100%;">
+          <div class="skill-btn-tag">Quick run</div>
+          <div class="skill-btn-name">Weekly report</div>
+        </button>
+        <button class="skill-btn" onclick="openSkillModal('clay-reply-classify')" style="width:100%;">
+          <div class="skill-btn-tag">Quick run</div>
+          <div class="skill-btn-name">Process replies</div>
+        </button>
+      </div>
+    </div>
+    <div class="right-section">
+      <div class="right-label">Vault Stats</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-secondary);line-height:2;" id="vault-stats">
+        Loading...
+      </div>
+    </div>
+    <div class="right-section">
+      <div class="right-label">Built by</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text-primary);margin-bottom:4px;">Aakash Sethi</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-tertiary);line-height:1.8;">
+        GTM Engineer<br>
+        github.com/Aaksethi<br>
+        sethiaakash04@gmail.com
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="command-bar">
+  <div class="command-prefix">&gt;</div>
+  <input type="text" class="command-input" id="command-input"
+    placeholder="Type any instruction for the agent..."
+    onkeydown="handleCommand(event)"/>
+  <div class="command-hint">Enter to run</div>
+</div>
+
+<div class="modal-overlay" id="skill-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Run skill</div>
+      <button class="modal-close" onclick="document.getElementById('skill-modal').classList.remove('active')">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── CLOCK ───
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('en-US', {hour12:false});
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ─── SERVER HEALTH CHECK ───
+  async function checkServer() {
+    try {
+      const res = await fetch('/memory');
+      if (res.ok) {
+        document.getElementById('server-dot').style.background = 'var(--green)';
+        document.getElementById('server-status').textContent = 'Agent ready';
+        document.getElementById('agent-status').textContent = '● Connected';
+        document.getElementById('agent-status').style.color = 'var(--green)';
+      }
+    } catch {
+      document.getElementById('server-dot').style.background = 'var(--red)';
+      document.getElementById('server-status').textContent = 'Server offline';
+      document.getElementById('agent-status').textContent = '● Offline — run: node server.js';
+      document.getElementById('agent-status').style.color = 'var(--red)';
+    }
+  }
+  checkServer();
+  setInterval(checkServer, 10000);
+
+  // ─── LOAD MEMORY ───
+  async function loadMemory() {
+    try {
+      const res = await fetch('/memory');
+      const data = await res.json();
+      const el = document.getElementById('memory-content');
+      // Colorize memory content
+      el.innerHTML = data.content
+        .replace(/\[(\d{4}-\d{2}-\d{2})\]/g, '<span class="log-date">[$1]</span>')
+        .replace(/SESSION \d+/g, '<span class="log-event">$&</span>')
+        .replace(/\n/g, '<br>');
+    } catch {
+      document.getElementById('memory-content').textContent = 'Cannot reach server';
+    }
+  }
+
+  // ─── LOAD VAULT ───
+  async function loadVault() {
+    try {
+      const res = await fetch('/vault');
+      const data = await res.json();
+
+      // Vault files panel
+      const filesEl = document.getElementById('vault-files');
+      if (data.outputs.length === 0 && data.raws.length === 0) {
+        filesEl.textContent = 'No files yet — run a skill to populate';
+      } else {
+        filesEl.innerHTML =
+          data.outputs.map(f =>
+            `<div style="color:var(--amber)">output/ ${f}</div>`
+          ).join('') +
+          data.raws.map(f =>
+            `<div style="color:var(--blue)">raw/ ${f}</div>`
+          ).join('');
+      }
+
+      // Right panel stats
+      document.getElementById('vault-stats').innerHTML =
+        `<div>Output files: <span style="color:var(--amber)">${data.outputs.length}</span></div>
+         <div>Raw files: <span style="color:var(--blue)">${data.raws.length}</span></div>
+         <div>Total: <span style="color:var(--text-primary)">${data.total}</span></div>`;
+
+    } catch {
+      document.getElementById('vault-files').textContent = 'Cannot reach server';
+    }
+  }
+
+  // ─── VIEW SWITCHING ───
+  const views = ['pipeline', 'skills', 'memory', 'config'];
+
+  function setView(view) {
+    views.forEach(v => {
+      document.getElementById('view-' + v).style.display = v === view ? 'block' : 'none';
+    });
+    document.querySelectorAll('.sidebar-item').forEach((el, i) => {
+      el.classList.toggle('active', i === views.indexOf(view));
+    });
+    if (view === 'memory') { loadMemory(); loadVault(); }
+  }
+
+  // ─── SKILL MODAL DATA ───
+  const skillData = {
+    'positioning-icp': {
+      title: 'positioning-icp',
+      desc: 'Interviews you about the product and customers to produce a concrete ICP with enrichment signals ready for Clay.',
+      fields: [
+        { label: 'Client or product name', placeholder: 'e.g. Acme AI SaaS' },
+        { label: 'Who are your 3 best customers?', placeholder: 'Company names or types...' },
+        { label: 'What triggers them to look for you?', placeholder: 'e.g. expanding locations, hiring marketing roles...' }
+      ]
+    },
+    'clay-outbound-prep': {
+      title: 'clay-outbound-prep',
+      desc: 'Fires the full Clay pipeline — enrich, find email, ICP score, write first line. Reads ICP from BRAND.md automatically.',
+      fields: [
+        { label: 'Target segment', placeholder: 'e.g. Retail chains 50-200 locations US' },
+        { label: 'Max leads to enrich', placeholder: 'e.g. 50' }
+      ]
+    },
+    'lead-enrichment': {
+      title: 'lead-enrichment',
+      desc: 'Designs the waterfall enrichment strategy. Scores leads first — only enriches those scoring 5+.',
+      fields: [
+        { label: 'Lead source or context', placeholder: 'e.g. list of 20 retail chains from Clay search' }
+      ]
+    },
+    'ai-cold-outreach': {
+      title: 'ai-cold-outreach',
+      desc: 'Writes 4-email sequences for enriched leads using your SOUL.md voice. Tier A/B/C priority.',
+      fields: [
+        { label: 'Segment to write for', placeholder: 'e.g. Tier A leads — retail chain CMOs' },
+        { label: 'Any specific angle or hook', placeholder: 'e.g. recent store expansion news' }
+      ]
+    },
+    'clay-reply-classify': {
+      title: 'clay-reply-classify',
+      desc: 'Paste replies and the agent classifies each: Interested / Objection / Unsubscribe / OOO. Drafts the right response.',
+      fields: [
+        { label: 'Paste reply emails here', placeholder: 'From: sarah@retailco.com\nSubject: Re: marketing...\n\nInteresting, tell me more.' }
+      ]
+    },
+    'gtm-metrics': {
+      title: 'gtm-metrics',
+      desc: 'Generates the weekly pipeline report. Reply rates by tier, sequence performance, credit efficiency.',
+      fields: [
+        { label: 'Week of', placeholder: 'e.g. May 17 2026' }
+      ]
+    },
+    'clay-icp-score': {
+      title: 'clay-icp-score',
+      desc: 'Scores a list of leads A/B/C/D against the ICP in BRAND.md. Only A and B go to enrichment.',
+      fields: [
+        { label: 'Paste company list', placeholder: 'One company per line...\nWalmart\nTarget\nKroger' }
+      ]
+    },
+    'social-selling': {
+      title: 'social-selling',
+      desc: 'Takes LinkedIn signals and turns them into personalised outreach moments.',
+      fields: [
+        { label: 'LinkedIn signal or observation', placeholder: 'e.g. Sarah Chen at RetailCo posted about marketing challenges across their 60 locations...' }
+      ]
+    },
+    'n8n-clay-integration': {
+      title: 'n8n-clay-integration',
+      desc: 'Documents the n8n workflow architecture for bridging your OS with Clay. Outputs exact webhook patterns.',
+      fields: [
+        { label: 'Workflow to design', placeholder: 'e.g. Gmail reply handler, Scheduled prospecting, or full reply routing workflow' }
+      ]
+    }
+  };
+
+  function openSkillModal(skill) {
+    const data = skillData[skill];
+    if (!data) return;
+    document.getElementById('modal-title').textContent = data.title;
+    let html = `<p style="margin-bottom:20px;color:var(--text-secondary);font-size:13px;line-height:1.6;">${data.desc}</p>`;
+    data.fields.forEach((f, i) => {
+      html += `<div class="modal-field">
+        <div class="modal-label">${f.label}</div>
+        ${f.placeholder.includes('\n')
+          ? `<textarea class="modal-input" id="field-${i}" rows="4" placeholder="${f.placeholder}" style="resize:vertical;"></textarea>`
+          : `<input class="modal-input" id="field-${i}" type="text" placeholder="${f.placeholder}"/>`
+        }
+      </div>`;
+    });
+    html += `<button class="modal-btn" onclick="runSkill('${skill}')">Run ${data.title} →</button>`;
+    document.getElementById('modal-body').innerHTML = html;
+    document.getElementById('skill-modal').classList.add('active');
+  }
+
+  function closeModal(e) {
+    if (e.target.id === 'skill-modal')
+      document.getElementById('skill-modal').classList.remove('active');
+  }
+
+  // ─── RUN SKILL (calls real server) ───
+  async function runSkill(skill) {
+    const inputs = {};
+    const data = skillData[skill];
+    if (data && data.fields) {
+      data.fields.forEach((f, i) => {
+        const el = document.getElementById('field-' + i);
+        if (el && el.value.trim()) inputs[f.label] = el.value.trim();
+      });
+    }
+    document.getElementById('skill-modal').classList.remove('active');
+    showRunning(`Running ${skill}... Claude Code is working (30-90 seconds)`);
+    addActivity(`Skill invoked: ${skill}`, 'Reading CLAUDE.md → BRAND.md → skill file...', 'var(--amber)');
+
+    try {
+      const response = await fetch('/run-skill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill, inputs })
+      });
+      const result = await response.json();
+      hideRunning();
+
+      if (result.success) {
+        addActivity(`✓ ${skill} completed`, `Output saved → ${result.outputFile}`, 'var(--green)');
+        showToast(`✓ ${skill} done`);
+        document.getElementById('modal-title').textContent = skill + ' — Output';
+        document.getElementById('modal-body').innerHTML =
+          `<pre style="font-family:var(--mono);font-size:11px;color:var(--text-secondary);
+           white-space:pre-wrap;line-height:1.6;max-height:400px;overflow-y:auto;">${result.output}</pre>
+           <p style="margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--text-tertiary);">
+           Saved to: ${result.outputFile}</p>`;
+        document.getElementById('skill-modal').classList.add('active');
+        loadVault(); // refresh vault count
+      } else {
+        addActivity(`⚠ ${skill} error`, result.error || 'Check server terminal', 'var(--red)');
+        showToast('⚠ Error — check server terminal');
+      }
+    } catch (err) {
+      hideRunning();
+      addActivity('Cannot reach server', 'Make sure node server.js is running in terminal', 'var(--red)');
+      showToast('⚠ Server not running — run: node server.js');
+    }
+  }
+
+  // ─── QUICK RUN ───
+  function quickRun(command) {
+    document.getElementById('command-input').value = command;
+    executeCommand(command);
+    document.getElementById('command-input').value = '';
+  }
+
+  // ─── COMMAND BAR ───
+  function handleCommand(e) {
+    if (e.key === 'Enter') {
+      const val = document.getElementById('command-input').value.trim();
+      if (!val) return;
+      executeCommand(val);
+      document.getElementById('command-input').value = '';
+    }
+  }
+
+  async function executeCommand(command) {
+    showRunning(`Agent processing: "${command.substring(0,50)}..."`);
+    addActivity(`Command: ${command.substring(0,70)}`, 'Sending to Claude Code...', 'var(--blue)');
+
+    try {
+      const response = await fetch('/run-command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+      });
+      const result = await response.json();
+      hideRunning();
+
+      if (result.success) {
+        addActivity('Command completed. Output saved to vault.', 'MEMORY.md updated', 'var(--green)');
+        showToast('✓ Done — output saved to vault');
+        document.getElementById('modal-title').textContent = 'Command Output';
+        document.getElementById('modal-body').innerHTML =
+          `<pre style="font-family:var(--mono);font-size:11px;color:var(--text-secondary);
+           white-space:pre-wrap;line-height:1.6;max-height:400px;overflow-y:auto;">${result.output}</pre>`;
+        document.getElementById('skill-modal').classList.add('active');
+        loadVault();
+      } else {
+        addActivity('Command error', 'Check server terminal for details', 'var(--red)');
+      }
+    } catch {
+      hideRunning();
+      addActivity('Cannot reach server', 'Run: node server.js in terminal', 'var(--red)');
+      showToast('⚠ Server offline');
+    }
+  }
+
+  // ─── UTILITIES ───
+  function showRunning(text) {
+    document.getElementById('running-text').textContent = text;
+    document.getElementById('running-indicator').classList.add('active');
+  }
+  function hideRunning() {
+    document.getElementById('running-indicator').classList.remove('active');
+  }
+  function addActivity(text, meta, color) {
+    const feed = document.getElementById('activity-feed');
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+    item.innerHTML = `
+      <div class="activity-time">Now</div>
+      <div class="activity-dot" style="background:${color}"></div>
+      <div class="activity-content">
+        <div class="activity-text">${text}</div>
+        <div class="activity-meta">${meta}</div>
+      </div>`;
+    feed.insertBefore(item, feed.firstChild);
+    setView('pipeline');
+  }
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('active');
+    setTimeout(() => t.classList.remove('active'), 3500);
+  }
+
+  // ─── INIT ───
+  loadVault();
+</script>
+</body>
+</html>

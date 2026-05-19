@@ -30,3 +30,6 @@ decisions or pending tasks before starting new work.
 
 ## ICP UPDATES
 (Add refinements here as you learn what converts)
+## [2026-05-19] — Command via dashboard
+- Command: Read CLAUDE.md, BRAND.md and MEMORY.md. Summarize the current campaign status and top 3 priorities.
+- Output saved to vault
